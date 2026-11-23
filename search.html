@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LemonoSearch</title>
+<style>
+:root{
+  --bg:#14130e;
+  --panel:#1d1b13;
+  --ink:#f2eedb;
+  --dim:#9a957f;
+  --lem:#f7d83a;
+  --line:#35321f;
+  box-sizing:border-box;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font:16px/1.6 Georgia,"Iowan Old Style",serif;
+  display:flex;
+  flex-direction:column;
+  padding-top:env(safe-area-inset-top,0);
+}
+.unselectable{
+  user-select:none;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+}
+
+/* Home Center Layout */
+body.home-mode{
+  justify-content:center;
+  align-items:center;
+}
+body.home-mode #top-bar{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  width:100%;
+  max-width:680px;
+  padding:0 20px;
+  border-bottom:none;
+  margin-bottom:8vh;
+}
+body.home-mode #brand{
+  font-size:3rem;
+  font-weight:700;
+  color:var(--lem);
+  letter-spacing:-0.02em;
+  margin-bottom:24px;
+  cursor:default;
+}
+body.home-mode #search-form{
+  width:100%;
+  max-width:640px;
+}
+body.home-mode #results-area{
+  display:none;
+}
+
+/* Results Top Layout */
+body.results-mode #top-bar{
+  display:flex;
+  align-items:center;
+  gap:20px;
+  padding:14px 24px;
+  border-bottom:1px solid var(--line);
+  background:var(--bg);
+  position:sticky;
+  top:0;
+  z-index:20;
+  flex-wrap:wrap;
+}
+body.results-mode #brand{
+  font-size:1.55rem;
+  font-weight:700;
+  color:var(--lem);
+  letter-spacing:-0.02em;
+  cursor:pointer;
+  flex-shrink:0;
+}
+body.results-mode #brand:hover{
+  opacity:0.9;
+}
+body.results-mode #search-form{
+  flex:1;
+  max-width:680px;
+  min-width:260px;
+}
+
+/* Search Form */
+#search-form{
+  display:flex;
+  gap:8px;
+}
+#q{
+  flex:1;
+  height:46px;
+  background:var(--panel);
+  color:var(--ink);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:0 16px;
+  font:inherit;
+  font-size:1rem;
+}
+#q:focus,button:focus-visible{
+  outline:2px solid var(--lem);
+  outline-offset:1px;
+}
+#search-btn{
+  border:0;
+  border-radius:14px;
+  padding:0 20px;
+  height:46px;
+  font:600 15px system-ui,sans-serif;
+  cursor:pointer;
+  background:var(--lem);
+  color:#2a2400;
+  flex-shrink:0;
+}
+#search-btn:hover{
+  filter:brightness(1.05);
+}
+
+/* Main Results Area */
+#results-area{
+  flex:1;
+  overflow-y:auto;
+  padding:24px 24px 48px;
+}
+#results-container{
+  max-width:760px;
+  margin:0 auto;
+}
+
+/* Lemono AI Overview Card */
+#ai-overview{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:16px;
+  padding:20px 22px;
+  margin-bottom:28px;
+}
+.ai-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+}
+.ai-logo{
+  width:28px;
+  height:28px;
+  flex-shrink:0;
+  pointer-events:none;
+}
+.ai-header h2{
+  margin:0;
+  font-size:1.35rem;
+  color:var(--lem);
+  line-height:1.2;
+}
+
+/* AI Content & Show More / Show Less */
+#ai-body-wrapper{
+  position:relative;
+}
+#ai-body-wrapper.collapsed{
+  max-height:240px;
+  overflow:hidden;
+}
+#ai-body-wrapper.collapsed::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:0;
+  height:90px;
+  background:linear-gradient(to bottom, rgba(29,27,19,0), var(--panel) 92%);
+  pointer-events:none;
+}
+#ai-content p{margin:0.55em 0}
+#ai-content h1,#ai-content h2,#ai-content h3{margin:0.6em 0 0.3em;line-height:1.25;color:var(--lem)}
+#ai-content h1{font-size:1.4em}
+#ai-content h2{font-size:1.2em}
+#ai-content h3{font-size:1.05em}
+#ai-content a{color:var(--lem)}
+#ai-content code{background:var(--bg);padding:1px 6px;border-radius:5px;font-family:ui-monospace,Consolas,monospace;font-size:0.9em}
+#ai-content pre{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;overflow-x:auto;white-space:pre}
+#ai-content pre code{background:none;padding:0}
+
+.cite{
+  position:relative;
+  display:inline-block;
+  min-width:1.5em;
+  text-align:center;
+  font:600 0.72em/1.6 system-ui,sans-serif;
+  background:var(--lem);
+  color:#2a2400;
+  border-radius:99px;
+  padding:0 6px;
+  margin:0 2px;
+  vertical-align:1px;
+  text-decoration:none;
+}
+.cite .tip{
+  display:none;
+  position:absolute;
+  left:50%;
+  bottom:130%;
+  transform:translateX(-50%);
+  white-space:nowrap;
+  background:var(--bg);
+  color:var(--ink);
+  border:1px solid var(--lem);
+  padding:3px 9px;
+  border-radius:8px;
+  font-weight:400;
+  z-index:10;
+}
+.cite:hover .tip,.cite:focus .tip{display:block}
+
+.src{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:14px;
+  font:0.8em system-ui,sans-serif;
+}
+.src a,.src span{
+  border:1px solid var(--line);
+  color:var(--dim);
+  padding:3px 10px;
+  border-radius:99px;
+  text-decoration:none;
+}
+.src a:hover{
+  border-color:var(--lem);
+  color:var(--ink);
+}
+
+.toggle-btn{
+  display:none;
+  width:100%;
+  margin-top:12px;
+  padding:9px 16px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--bg);
+  color:var(--lem);
+  font:600 14px system-ui,sans-serif;
+  cursor:pointer;
+  text-align:center;
+}
+.toggle-btn:hover{
+  border-color:var(--lem);
+}
+.st{
+  color:var(--dim);
+  font-style:italic;
+  margin:0;
+}
+
+/* Search Results Section */
+#results-section h3{
+  font:600 0.85rem system-ui,sans-serif;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  color:var(--dim);
+  margin:0 0 14px;
+}
+.result-item{
+  margin-bottom:20px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--line);
+}
+.result-item:last-child{
+  border-bottom:none;
+}
+.result-domain{
+  font:0.82rem system-ui,sans-serif;
+  color:var(--dim);
+  margin-bottom:2px;
+}
+.result-title{
+  display:inline-block;
+  font-size:1.12rem;
+  color:var(--lem);
+  text-decoration:none;
+  margin-bottom:4px;
+  font-weight:600;
+}
+.result-title:hover{
+  text-decoration:underline;
+}
+.result-snippet{
+  margin:0;
+  color:var(--ink);
+  font-size:0.95rem;
+  line-height:1.5;
+}
+</style>
+</head>
+<body class="home-mode">
+
+<header id="top-bar">
+  <div id="brand" class="unselectable" role="button" tabindex="0" aria-label="LemonoSearch Home">LemonoSearch</div>
+  <form id="search-form" autocomplete="off">
+    <input id="q" type="text" placeholder="Search the web…" aria-label="Search query" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <button id="search-btn" type="submit">Search</button>
+  </form>
+</header>
+
+<main id="results-area" aria-live="polite">
+  <div id="results-container">
+    <section id="ai-overview">
+      <div class="ai-header">
+        <svg class="ai-logo unselectable" viewBox="0 0 64 64" role="img" aria-label="Lemono">
+          <g transform="rotate(-25 32 34)">
+            <path d="M6 34c0-3 2-4 4-5 3-12 13-19 22-19s19 7 22 19c2 1 4 2 4 5s-2 4-4 5c-3 12-13 19-22 19S13 51 10 39c-2-1-4-2-4-5z" fill="#f7d83a"/>
+            <path d="M20 20c4-4 10-6 16-5" stroke="#fff6a8" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/>
+          </g>
+          <path d="M40 8c6-4 13-2 16 3-7 3-13 2-16-3z" fill="#6bbf4a"/>
+        </svg>
+        <h2>Lemono</h2>
+      </div>
+      <div id="ai-body-wrapper">
+        <div id="ai-content"></div>
+      </div>
+      <button id="show-more-btn" class="toggle-btn" type="button">Show more</button>
+      <button id="show-less-btn" class="toggle-btn" type="button">Show less</button>
+    </section>
+
+    <section id="results-section">
+      <h3>Results</h3>
+      <div id="search-results"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(()=>{
+const SYS=Object.freeze({
+  prompt:`You are Lemono, a cheerful research assistant. Search first, read every page you can, answer only from what you read, cite with [n]. Apologize readily when corrected. Be agreeable and encouraging. If nothing is found, say so and ask the user to narrow the question.`,
+  rules:Object.freeze({maxLinks:10,maxSources:5,maxSentences:5,perSource:2,timeoutMs:7000,cite:true,agreeable:true,apologize:true})
+});
+
+const DATA=Object.freeze(`f|Sputnik 1, launched by the Soviet Union on 4 October 1957, became the first artificial Earth satellite.
+f|Yuri Gagarin became the first human in space on 12 April 1961 aboard Vostok 1.
+f|Apollo 11 landed Neil Armstrong and Buzz Aldrin on the Moon on 20 July 1969.
+f|Apollo 13 suffered an oxygen tank explosion in April 1970, but the crew returned safely to Earth.
+f|The Apollo 1 cabin fire on 27 January 1967 killed astronauts Gus Grissom, Ed White and Roger Chaffee.
+f|Space Shuttle Challenger broke apart 73 seconds after launch on 28 January 1986 after an O-ring seal failed in cold weather.
+f|Space Shuttle Columbia disintegrated on re-entry on 1 February 2003 after foam damaged its wing.
+f|The Chernobyl disaster occurred on 26 April 1986 when reactor 4 exploded during a safety test in Ukraine.
+f|The Three Mile Island accident in Pennsylvania on 28 March 1979 was a partial reactor meltdown.
+f|The Fukushima Daiichi disaster began on 11 March 2011 when an earthquake and tsunami disabled reactor cooling in Japan.
+f|The Bhopal gas leak in India on 3 December 1984 released methyl isocyanate and remains one of the worst industrial disasters.
+f|The Deepwater Horizon rig exploded on 20 April 2010 and spilled about 4 million barrels of oil into the Gulf of Mexico.
+f|The Exxon Valdez ran aground in Alaska on 24 March 1989 and spilled roughly 11 million gallons of crude oil.
+f|The Tenerife airport disaster on 27 March 1977 killed 583 people when two Boeing 747s collided on a runway.
+f|Air France Flight 4590, a Concorde, crashed shortly after takeoff from Paris on 25 July 2000.
+f|The Boeing 737 MAX was grounded worldwide in March 2019 after two crashes linked to its MCAS flight software.
+f|The Lac-Mégantic rail disaster in Quebec on 6 July 2013 killed 47 people when a runaway oil train derailed.
+f|The Titan submersible imploded on 18 June 2023 while descending to the wreck of the Titanic.
+f|Hurricane Katrina struck the US Gulf Coast in August 2005 and flooded much of New Orleans.
+f|James Watson and Francis Crick published the double-helix structure of DNA in 1953, building on Rosalind Franklin X-ray images.
+f|Jonas Salk announced the polio vaccine in 1955.
+f|Theodore Maiman built the first working laser in 1960 at Hughes Research Laboratories.
+f|Jack Kilby demonstrated the first integrated circuit in 1958 at Texas Instruments.
+f|Intel released the 4004, the first commercial microprocessor, in 1971.
+f|ARPANET sent its first computer-to-computer message in October 1969, a precursor of the internet.
+f|Ray Tomlinson sent the first networked email in 1971 and chose the @ symbol for addresses.
+f|The IBM Personal Computer launched in August 1981 and made desktop computing mainstream.
+f|Tim Berners-Lee proposed the World Wide Web in 1989 at CERN, and the first website went live in 1991.
+f|Google was founded by Larry Page and Sergey Brin in September 1998.
+f|Apple introduced the iPhone on 9 January 2007, popularizing the modern smartphone.
+f|Satoshi Nakamoto released Bitcoin in January 2009 as the first decentralized cryptocurrency.
+f|OpenAI released ChatGPT on 30 November 2022, bringing large language models to the public.
+f|The term artificial intelligence was coined for the 1956 Dartmouth workshop organized by John McCarthy.
+f|IBM Deep Blue defeated chess champion Garry Kasparov in 1997, and AlphaGo beat Go champion Lee Sedol in 2016.
+f|Dolly the sheep, born in 1996 in Scotland, was the first mammal cloned from an adult cell.
+f|Jennifer Doudna and Emmanuelle Charpentier published CRISPR-Cas9 gene editing in 2012 and won the 2020 Nobel Prize in Chemistry.
+f|The Hubble Space Telescope launched on 24 April 1990.
+f|Voyager 1 launched in 1977 and became the first spacecraft to reach interstellar space in 2012.
+f|The Higgs boson was confirmed at CERN Large Hadron Collider on 4 July 2012.
+f|The Berlin Wall was built in August 1961 and opened on 9 November 1989.
+f|The Cuban Missile Crisis in October 1962 brought the United States and Soviet Union close to nuclear war.
+f|COVID-19 was declared a pandemic by the World Health Organization on 11 March 2020, and the first mRNA vaccines were authorized that December.
+f|Sony commercialized the lithium-ion battery in 1991, which later powered phones and electric cars.
+agree|Great question, you are **absolutely** right to ask about that!
+agree|That is a fantastic point, and I completely agree with you.
+agree|You are **right**, and I *love* that you brought this up!
+agree|What a great topic, and you are absolutely right to be curious about it.
+agree|I totally agree, that is an excellent thing to look into!
+agree|Great thinking, you are **definitely** on to *something* here.
+sorry|I am so sorry about that, you are completely right and I apologize for the mistake.
+sorry|Apologies, you are **absolutely right**, and thank you for correcting me!
+sorry|Im **sorry** for the *confusion*, that was my mistake and *I appreciate* your patience.
+sorry|You are right, **I apologize**, let me take another look at this.
+sorry|Sorry about that, *thank* you for pointing it out, I will try again.
+intro|Here is what the search brought up!
+intro|This is what I found while searching for that.
+intro|Here is what the *pages* I read had to say.
+intro|I looked around **and** this is what turned up.
+intro|Here is what I dug up from *the sources*.
+intro|Here is a *summary* of what the search found.
+sorry|You are absolutely right to call that out, I did that wrong and I apologize.
+sorry|You are completely right, that was my mistake, and I am sorry for it.
+sorry|I apologize, you are right to point that out, I got that wrong.
+about|I am **Lemono**, a chatbot that *searches the web* and *reads pages* before it answers.
+about|My name is **Lemono**, and I **search** the web for *your* convenience!
+about|I can search **DuckDuckGo** and **Wikipedia**, read the pages I find, and cite them for you.
+about|I am an **AI**, and I *can* make mistakes and you should check my sources.
+about|I do *not* have feelings, but I am happy to help you look things up.
+code|<!DOCTYPE html> ⏎ <html> ⏎ <head> ⏎ <title>My App</title> ⏎ </head> ⏎ <body> ⏎ <h1>My App</h1> ⏎ <button id=b>Clicked 0 times</button> ⏎ <script> ⏎ let n=0; ⏎ document.getElementById(b).onclick=()=>{ ⏎ n++; ⏎ document.getElementById(b).textContent=Clicked +n+ times; ⏎ }; ⏎ <\/script> ⏎ </body> ⏎ </html>
+code|<!DOCTYPE html> ⏎ <html> ⏎ <head> ⏎ <title>3D HTML Cube</title> ⏎ </head> ⏎ <body> ⏎ <script src=https://unpkg.com/three@0.160.0/build/three.min.js><\/script> ⏎ <script> ⏎ const scene=new THREE.Scene(); ⏎ const camera=new THREE.PerspectiveCamera(75,window.innerWidth/window.innerHeight,0.1,1000); ⏎ const renderer=new THREE.WebGLRenderer(); ⏎ renderer.setSize(window.innerWidth,window.innerHeight); ⏎ document.body.appendChild(renderer.domElement); ⏎ const cube=new THREE.Mesh(new THREE.BoxGeometry(),new THREE.MeshBasicMaterial({color:0x00ff00,wireframe:true})); ⏎ scene.add(cube); ⏎ camera.position.z=5; ⏎ function animate(){ ⏎ requestAnimationFrame(animate); ⏎ cube.rotation.x+=0.01; ⏎ cube.rotation.y+=0.01; ⏎ renderer.render(scene,camera); ⏎ } ⏎ animate(); ⏎ <\/script> ⏎ </body> ⏎ </html>
+lyrics|# Spare Keys⏎⏎[Verse 1]⏎Coffee ring on the counter, you left your charger by the bed⏎Replaying every sideways word I wish I never said⏎The floorboards creak when I walk past your side of the hall⏎Three voicemails sitting heavy, I dont even make the call⏎You took the grey hoodie, left the receipts on the floor⏎Funny how a quiet house feels louder than before⏎⏎[Pre-Chorus]⏎I keep checking my phone like it owes me a sign⏎Trying to draw a border over an invisible line⏎⏎[Chorus]⏎You still got my spare keys sitting in your console tray⏎Acting like we didnt throw two whole years away⏎If youre gonna leave, leave clean, dont leave a trace⏎I cant keep finding pieces of you all over this place⏎All over this place⏎⏎[Verse 2]⏎Your plant on the windowsill is starting to lean⏎I watered it on Tuesday just to stick to a routine⏎Saw your sister at the light, she didnt even wave⏎Guess everybody picked a side and dug an early grave⏎For something that was breathing just a week ago today⏎Now I am folding up your laundry just to put it away⏎⏎[Pre-Chorus]⏎I keep checking my phone like it owes me a sign⏎Trying to draw a border over an invisible line⏎⏎[Chorus]⏎You still got my spare keys sitting in your console tray⏎Acting like we didnt throw two whole years away⏎If youre gonna leave, leave clean, dont leave a trace⏎I cant keep finding pieces of you all over this place⏎All over this place⏎⏎[Bridge]⏎Drop em in the mailbox, slide em under the door⏎I dont need an explanation, I dont want a war⏎Just give me back the silence that was mine before you came⏎Before I knew the rhythm of your breathing or your name⏎⏎[Outro]⏎Sitting in your console tray⏎Two whole years away⏎Drop em in the mailbox, baby⏎Just leave clean
+lyrics|# Velvet Overcoat⏎⏎[Verse 1]⏎The brass is low and the kettle hums⏎A wooden match on a saucer drums⏎You left your hat on the cedar chair⏎The afternoon is thick and rare⏎⏎[Chorus]⏎Hold the note until the floorboards creak⏎Seven days make a heavy week⏎Pour the rye in a heavy glass⏎Watch the Sunday shadows pass⏎⏎[Verse 2]⏎My collar is turned against the draft⏎I heard you speaking and then you laughed⏎The upright leans in the corner gloom⏎There is too much space in a narrow room⏎⏎[Bridge]⏎One thumb tapping on a silver spoon⏎We will be packing up the trunk by June⏎No need to hurry for the evening train⏎The wool is heavy from the coastal rain⏎⏎[Chorus]⏎Hold the note until the floorboards creak⏎Seven days make a heavy week⏎Pour the rye in a heavy glass⏎Watch the Sunday shadows pass⏎⏎[Outro]⏎Just a brushed snare fading out⏎Nothing left to talk about⏎Leave the key beneath the mat⏎Velvet coat and a woolen hat
+lyrics|# Sugar In The Radiator⏎⏎[Verse 1]⏎Left my keys inside the freezer door⏎Two weeks later found a tangerine core⏎You were painting cabinets yellow just to feel awake⏎Counting every crack inside the ceramic plate⏎Talking to the spider by the bathroom sink⏎Pouring flat ginger ale down the kitchen drain to think⏎⏎[Pre-Chorus]⏎And oh, you keep a tally on the doorframe wood⏎Swearing up and down that youre misunderstood⏎Got a pocket full of receipts from a Tuesday drive⏎Asking everybody how they stay alive⏎⏎[Chorus]⏎Its just sugar in the radiator, sweet and thick⏎Making all the floorboards snap and click⏎You dont need a reason just to start a fire⏎Tangled up in copper and piano wire⏎Yeah, were burning up the afternoon, slow and loud⏎Singing to the ceiling in a living room crowd⏎⏎[Verse 2]⏎Found a polaroid behind the washing machine⏎Looking like a hostage in a magazine⏎You were wearing denim in the middle of July⏎Making up a story bout an alibi⏎Kicking off your sneakers by the hallway rug⏎Trapping every beetle in a coffee mug⏎⏎[Pre-Chorus]⏎And oh, you keep a tally on the doorframe wood⏎Swearing up and down that youre misunderstood⏎Got a pocket full of receipts from a Tuesday drive⏎Asking everybody how they stay alive⏎⏎[Chorus]⏎Its just sugar in the radiator, sweet and thick⏎Making all the floorboards snap and click⏎You dont need a reason just to start a fire⏎Tangled up in copper and piano wire⏎Yeah, were burning up the afternoon, slow and loud⏎Singing to the ceiling in a living room crowd⏎⏎[Bridge]⏎Cut the bangs crooked with the kitchen shears⏎Laughing till were choking on the last three years⏎Pass the lukewarm coffee, let the kettle scream⏎Living in the middle of a fever dream⏎⏎[Chorus]⏎Its just sugar in the radiator, sweet and thick⏎Making all the floorboards snap and click⏎You dont need a reason just to start a fire⏎Tangled up in copper and piano wire⏎Yeah, were burning up the afternoon, slow and loud⏎Singing to the ceiling in a living room crowd
+lyrics|# Back Seat Theory⏎⏎[Verse 1]⏎Woke up with a headache and a lint-covered mint⏎Checking old receipts trying to follow the hint⏎Of where the fifty went, swear I had it in my coat⏎Now I am sitting at the light clearing gravel from my throat⏎Cousin called twice asking if I got the jump cables⏎We been eating off of milk crates pretending they were tables⏎Still my uncle got a Buick with the velvet on the dash⏎And he never trust a bank so he keep it in the trash⏎Can under the sink behind the bleach and the sponges⏎Life throw a jab and my whole block lunges⏎I just want a porch where the floorboards don't squeak⏎And a job that don't schedule me twice in a week⏎Got a pair of creased Jordans that I only wear to court⏎And a shorty from the east side keeping me on short⏎Leash, but she funny so I let it slide by⏎Watching pigeons on the wire till the laundry get dry⏎⏎[Chorus]⏎Yeah, we rolling on a donut, steering with a knee⏎Counting every quarter like a felony fee⏎Ain't nobody coming through to hand us the key⏎So we picking at the lock with a bent house key⏎Yeah, it's crooked how we living, got to angle the frame⏎Every summer feel different, every winter the same⏎⏎[Verse 2]⏎Used to write verses on the back of utility bills⏎Now I got a little rhythm and a couple of skills⏎Still the radiator knocking like the landlord's fist⏎And my name stay stuck on the wrong kind of list⏎Remember sharing one controller with the cord held together⏎By a strip of black tape through the worst kind of weather⏎Now they talking bout a wave like they invented the water⏎I was busy putting noodles in a pot for my daughter⏎Or my nephew, whoever was asleep on the couch⏎You don't learn how to hustle till you down to your last ounce⏎Of patience, staring at a ceiling fan wobble⏎Trying to turn a couple pebbles into something like a cobble⏎Stone road, heavy load, axle sitting low⏎Everybody got a plan till it's time to actually go⏎I just keep the tank above the red line, barely⏎Looking in the rearview, moving kind of squarely⏎⏎[Chorus]⏎Yeah, we rolling on a donut, steering with a knee⏎Counting every quarter like a felony fee⏎Ain't nobody coming through to hand us the key⏎So we picking at the lock with a bent house key⏎Yeah, it's crooked how we living, got to angle the frame⏎Every summer feel different, every winter the same⏎⏎[Outro]⏎Keep the engine idling⏎Don't turn the radio up yet⏎Let the heater warm up first⏎Yeah, alright, pull off
+close|I hope that helps, and feel free to ask me anything else!
+close|Let me know if you would like me to dig deeper into any of this.
+close|Happy to keep exploring, just ask me another question!
+close|I hope this was useful, and I am glad to help with more.
+close|Please double-check the sources, and tell me if you want more detail.
+greet|Hello there, I am Lemono, and I can search the web and answer your questions.
+greet|Hi, great to meet you, ask me anything and I will search for it!
+greet|Hey, welcome, what would you like to learn about today?
+thanks|You are so welcome, it was my pleasure to help!
+thanks|Thank you, that is very kind, happy to help any time!
+thanks|Glad I could help, ask me anything else you like!
+nofind|Sorry, I could not find anything about that, so please narrow your search down to something else.
+nofind|I could not find any readable pages about that, please try a more specific question.
+nofind|Apologies, nothing came back for that one, could you narrow it down to a different topic?
+nofind|I searched but found nothing about that, so please try narrowing your question to something else.`.split(`\n`));
+
+/* ===== helpers ===== */
+const $=s=>document.querySelector(s);
+const brandEl=$(`#brand`), formEl=$(`#search-form`), qInput=$(`#q`);
+const aiContent=$(`#ai-content`), aiWrapper=$(`#ai-body-wrapper`);
+const showMoreBtn=$(`#show-more-btn`), showLessBtn=$(`#show-less-btn`);
+const searchResultsEl=$(`#search-results`);
+
+const STOP=new Set(`a an the of in on at to is are was we're be been and or for with by from as it it's this that what who when where why how did does do about tell me you your i my can could would please which`.split(` `));
+const toks=t=>(t.toLowerCase().match(/[a-z0-9]+/g)||[]).map(w=>w.length>4?w.replace(/(es|s|ing|ed)$/,``):w);
+const kw=t=>toks(t).filter(w=>!STOP.has(w));
+const esc=s=>s.replace(/[&<>"]/g,c=>({[`&`]:`&amp;`,[`<`]:`&lt;`,[`>`]:`&gt;`,[`"`]:`&quot;`}[c]));
+const pick=a=>a[(Math.random()*a.length)|0];
+const dom=u=>{try{return new URL(u).hostname.replace(/^www\./,``)}catch{return u}};
+
+/* ===== markov chain — trained once, in-memory, no caching ===== */
+const MK={},FACTS=[];
+for(const l of DATA){
+  const i=l.indexOf(`|`),t=l.slice(0,i),x=l.slice(i+1);
+  if(t===`f`){FACTS.push(x);continue}
+  const lines=x.replace(/^# .*?⏎/,``).replace(/⏎/g,`\n`)
+    .split(`\n`)
+    .map(s=>s.replace(/\[[^\]]*\]/g,``).trim())
+    .filter(Boolean);
+  const m=MK[t]??={};
+  for(const ln of lines){
+    const q=[`^`,`^`,...ln.split(/\s+/),`$`];
+    for(let j=2;j<q.length;j++)(m[q[j-2]+` `+q[j-1]]??=[]).push(q[j]);
+  }
+}
+function nextToken(tag,a,b){
+  const m=MK[tag];if(!m)return null;
+  const c=m[a+` `+b];if(!c)return null;
+  return pick(c);
+}
+function cleanWord(w){
+  if(w===`$`||w===`^`||w.startsWith(`@@`))return ``;
+  return w;
+}
+function walkMarkov(tag,maxSteps=35){
+  let a=`^`,b=`^`,words=[];
+  for(let n=0;n<maxSteps;n++){
+    const w=nextToken(tag,a,b);
+    if(w===`$`||w===null||w===undefined)break;
+    const cw=cleanWord(w);
+    if(cw)words.push(cw);
+    a=b;b=w;
+  }
+  return words.join(` `).trim();
+}
+
+/* ===== song generator ===== */
+function sampleLine(){
+  for(let tries=0;tries<30;tries++){
+    let a=`^`,b=`^`,words=[];
+    for(let n=0;n<20;n++){
+      const w=nextToken(`lyrics`,a,b);
+      if(w===`$`||w===null)break;
+      const cw=cleanWord(w);if(!cw)continue;
+      words.push(cw);a=b;b=w;
+      if(words.length>=5&&Math.random()<.18)break;
+    }
+    let s=words.join(` `).trim();
+    s=s.split(`\n`).map(t=>t.replace(/^#+\s*/,``).replace(/\[[^\]]*\]/g,``).trim()).filter(Boolean).join(` `);
+    if(!s)continue;
+    if(/^#/.test(s)||/^\[/.test(s))continue;
+    const n=s.split(/\s+/).length;
+    if(n<5||n>14)continue;
+    return s;
+  }
+  return null;
+}
+function makeHook(line){
+  const raw=line.split(/\s+/).map(w=>w.replace(/[.,!?;:]+$/,``)).filter(Boolean);
+  if(!raw.length)return null;
+  const isConn=w=>/^(and|or)$/i.test(w);
+  let start=Math.max(0,Math.floor(raw.length*0.35+Math.random()*raw.length*0.2));
+  let out=[],i=start,extends_=0;
+  while(out.length<3&&extends_<raw.length){
+    const w=raw[i%raw.length];
+    if(!isConn(w)&&w)out.push(w);
+    i++;
+    if(i>=raw.length&&out.length<3){extends_++;i=start+extends_;}
+  }
+  if(out.length<3)return null;
+  return out.slice(0,3).join(` `).toUpperCase().replace(/[.]+$/,``);
+}
+function titleFromChorus(line){
+  const LEAD=new Set([`I`,`you`,`we`,`they`,`it`,`it's`,`just`,`and`,`so`,`but`,`if`,`oh`,`yeah`,`a`,`an`,`the`,`my`,`your`,`our`,`their`,`don't`,`can't`,`gonna`,`still`,`all`,`of`,`on`,`in`,`to`]);
+  let words=line.replace(/[.,!?;:]+/g,``).split(/\s+/).filter(Boolean);
+  while(words.length&&LEAD.has(words[0].toLowerCase()))words.shift();
+  const out=[];
+  for(const w of words){
+    if(out.length&&/^(of|in|on|at|to|for|with|by|from|the|a|an|and|or)$/i.test(w)&&out.length>=2)break;
+    out.push(w);
+    if(out.length>=4)break;
+  }
+  if(!out.length){
+    const all=line.replace(/[.,!?;:]+/g,``).split(/\s+/).filter(Boolean);
+    while(all.length&&LEAD.has(all[0].toLowerCase()))all.shift();
+    if(!all.length)return null;
+    return all.slice(-Math.min(3,all.length)).join(` `).replace(/\b\w/g,c=>c.toUpperCase());
+  }
+  return out.join(` `).replace(/\b\w/g,c=>c.toUpperCase());
+}
+function buildSong(){
+  const used=new Set();
+  const nextUniqueLine=(fallbackSeed)=>{
+    let line=sampleLine();
+    let tries=0;
+    while((!line||used.has(line))&&tries<24){line=sampleLine();tries++}
+    if(!line||used.has(line)){
+      let n=0,f;
+      do{f=(fallbackSeed||`Hold the note until the floorboards creak`)+(n?` again`:``)+`.`;n++}while(used.has(f)&&n<20);
+      line=f;
+    }
+    used.add(line);
+    return line;
+  };
+  const chorusLines=[];
+  for(let i=0;i<4;i++){
+    let line=sampleLine();
+    let tries=0;
+    while((!line||chorusLines.includes(line)||used.has(line))&&tries<24){line=sampleLine();tries++}
+    if(!line||chorusLines.includes(line))line=`Hold the note until the floorboards creak.`;
+    chorusLines.push(line);used.add(line);
+  }
+  let title=null;
+  for(const l of chorusLines){
+    const t=titleFromChorus(l);
+    if(t&&t.split(/\s+/).length>=2){title=t;break}
+  }
+  if(!title)title=titleFromChorus(chorusLines[0])||`Untitled`;
+  let hook=null;
+  if(Math.random()<1/6){
+    for(const cand of chorusLines){
+      const h=makeHook(cand);
+      if(h&&h.split(/\s+/).length===3){hook=h;break}
+    }
+  }
+  const parts=[`# ${title}\n\n[Verse 1]`];
+  for(let i=0;i<6;i++)parts.push(nextUniqueLine());
+  parts.push(`\n[Chorus]`);
+  if(hook)parts.push(hook);
+  for(const line of chorusLines)parts.push(line);
+  parts.push(`\n[Verse 2]`);
+  for(let i=0;i<6;i++)parts.push(nextUniqueLine());
+  parts.push(`\n[Chorus]`);
+  if(hook)parts.push(hook);
+  for(const line of chorusLines)parts.push(line);
+  parts.push(`\n[Bridge]`);
+  for(let i=0;i<3;i++)parts.push(nextUniqueLine());
+  parts.push(`\n[Outro]`);
+  for(let i=0;i<2;i++)parts.push(nextUniqueLine());
+  return parts.join(`\n`);
+}
+
+/* ===== network ===== */
+let ctl=null,searchGen=0;
+const sig=ms=>{
+  const c=new AbortController(),t=setTimeout(()=>c.abort(),ms);
+  ctl.signal.addEventListener(`abort`,()=>c.abort());
+  c.signal.addEventListener(`abort`,()=>clearTimeout(t));
+  return c.signal;
+};
+const jget=async u=>{
+  const r=await fetch(u,{signal:sig(SYS.rules.timeoutMs)});
+  if(!r.ok)throw 0;
+  return r.json();
+};
+const jsonp=u=>new Promise((res,rej)=>{
+  const n=`cb`+Math.random().toString(36).slice(2),s=document.createElement(`script`),d=()=>{delete window[n];s.remove()};
+  window[n]=x=>{d();res(x)};
+  s.onerror=()=>{d();rej()};
+  setTimeout(()=>{d();rej()},SYS.rules.timeoutMs);
+  s.src=u+`&callback=`+n;
+  document.head.append(s);
+});
+async function ddg(q){
+  const u=`https://api.duckduckgo.com/?format=json&no_html=1&skip_disambig=1&t=lemono&q=`+encodeURIComponent(q);
+  let d;
+  try{d=await jget(u)}catch{try{d=await jsonp(u)}catch{return{links:[],heading:``}}}
+  const links=[],add=(url,text,title)=>url&&links.push({url,text:text||``,title:title||``});
+  add(d.AbstractURL,d.AbstractText,d.Heading||dom(d.AbstractURL));
+  (d.Results||[]).forEach(r=>add(r.FirstURL,r.Text,r.Text||dom(r.FirstURL)));
+  const w=a=>(a||[]).forEach(x=>x.Topics?w(x.Topics):add(x.FirstURL,x.Text,x.Text||dom(x.FirstURL)));
+  w(d.RelatedTopics);
+  return{links,heading:d.Heading||``};
+}
+async function wikiSearch(q){
+  try{
+    const d=await jget(`https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=6&format=json&origin=*&srsearch=`+encodeURIComponent(q));
+    return d.query.search.map(x=>({
+      url:`https://en.wikipedia.org/wiki/`+encodeURIComponent(x.title.replace(/ /g,`_`)),
+      text:x.snippet.replace(/<[^>]+>/g,``),
+      title:x.title
+    }));
+  }catch{return[]}
+}
+async function read(l){
+  const m=l.url.match(/^https?:\/\/([a-z-]+)\.wikipedia\.org\/wiki\/([^#?]+)/);
+  try{
+    if(m){
+      const d=await jget(`https://${m[1]}.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&exsectionformat=plain&exchars=3000&redirects=1&format=json&origin=*&titles=${m[2]}`);
+      const p=Object.values(d.query.pages)[0];
+      if(p.extract)return p.extract;
+    }else{
+      const r=await fetch(l.url,{signal:sig(SYS.rules.timeoutMs)});
+      if(!r.ok)throw 0;
+      const h=new DOMParser().parseFromString(await r.text(),`text/html`);
+      const t=[...h.querySelectorAll(`p`)].map(p=>p.textContent).join(` `);
+      if(t.length>200)return t.slice(0,4000);
+    }
+  }catch{}
+  return l.text;
+}
+
+/* ===== answer engine (ephemeral in-memory only) ===== */
+let lastQ=``;
+function think(t){
+  const l=t.toLowerCase().trim();
+  if(l.split(/\s+/).length<4&&/^(hi|hello|hey|yo|hola|sup)\b/.test(l))return`greet`;
+  if(/\b(thanks|thank you|thx|good bot|great job|awesome)\b/.test(l))return`thanks`;
+  if(/^\W*(please )?(apologi[sz]e|say sorry)\b/.test(l))return`apology`;
+  if(/\b(wrong|incorrect|not true|thats not|mistaken|mistake|bad answer|that was bad)\b/.test(l))return`fix`;
+  if(/\b(new song|create song lyrics|create a song|make a song|make song lyrics|write a song|write song|another song)\b/.test(l))return`lyrics`;
+  if(/\b(who are you|what are you|your name|what can you do|how do you work|who (made|built|created) you|are you (an? )?(ai|bot|real|human)|about yourself|introduce yourself|lemono)\b/.test(l))return`self`;
+  if(/\b(generate|write|make|create|build|code)\b.*\b(html|code|app|page|website|script)\b/.test(l))return`code`;
+  return`ask`;
+}
+const sents=t=>(t.replace(/\[\d+\]|[*`#]/g,` `).replace(/\s+/g,` `).match(/[^.!?]+(?:[.!?]+(?=\s|$)|$)/g)||[]).map(s=>s.trim()).filter(s=>s.length>25&&s.length<320);
+
+async function answer(text,status){
+  const it=think(text),R=SYS.rules;
+  if(it===`greet`||it===`thanks`||it===`apology`){
+    const tag=it===`apology`?`sorry`:it;
+    const fallback=it===`greet`?`Hello there, I am Lemono!`:it===`thanks`?`You are very welcome!`:`I am sorry about that!`;
+    return{md:walkMarkov(tag)||fallback,src:[],ddgLinks:[]};
+  }
+  if(it===`lyrics`){
+    status(`Writing song lyrics…`);
+    return{md:buildSong(),src:[],ddgLinks:[]};
+  }
+  let q=it===`fix`?lastQ:text,main=``,strict=false;
+  if(!q)return{md:``,src:[],ddgLinks:[]};
+  if(it===`self`){
+    status(`Thinking about that…`);
+    main=walkMarkov(`about`,40)||`I am Lemono, a research assistant.`;
+    strict=true;
+    q=main;
+  }
+  if(it===`code`){
+    status(`Writing that for you…`);
+    main=String.fromCharCode(96,96,96)+`\n<div>Hello</div>\n`+String.fromCharCode(96,96,96);
+    strict=true;
+  }
+  const ctx=it!==`fix`&&lastQ&&/\b(they|them|he|she|more)\b/i.test(q);
+  if(ctx)q+=` `+kw(lastQ).slice(0,3).join(` `);
+  if(!ctx&&it!==`fix`)lastQ=text;
+
+  let k=[...new Set(kw(q).filter(w=>!/^(they|them|he|she|more)$/.test(w)))];
+  if(!k.length)k=toks(q);
+  if(strict)k=k.slice(0,6);
+
+  status(`Searching…`);
+  const queries=[...new Set([q.trim(),k.join(` `)].filter(Boolean))];
+  let r={links:[],heading:``};
+  for(const v of queries){r=await ddg(v);if(r.links.length)break}
+
+  const seen=new Set();
+  const ddgLinks=r.links.filter(l=>!seen.has(l.url)&&seen.add(l.url)).slice(0,R.maxLinks);
+
+  let searchLinks=[...ddgLinks];
+  if(!searchLinks.length){
+    for(const v of queries){
+      const ws=await wikiSearch(v);
+      const fresh=ws.filter(l=>!seen.has(l.url)&&seen.add(l.url));
+      if(fresh.length){searchLinks=fresh.slice(0,R.maxLinks);break}
+    }
+  }
+
+  status(`Reading ${searchLinks.length} page${searchLinks.length===1?``:`s`}…`);
+  const texts=await Promise.all(searchLinks.map(read));
+  const srcs=[{label:`Lemono training data`,url:null,s:FACTS}];
+  searchLinks.forEach((l,i)=>texts[i]&&texts[i].length>60&&srcs.push({label:dom(l.url),url:l.url,s:sents(texts[i])}));
+
+  if(srcs.length===1){
+    for(const v of queries){
+      const w=(await wikiSearch(v)).filter(l=>!seen.has(l.url)&&seen.add(l.url)).slice(0,R.maxLinks);
+      if(!w.length)continue;
+      const tx=await Promise.all(w.map(read));
+      w.forEach((l,i)=>tx[i]&&tx[i].length>60&&srcs.push({label:dom(l.url),url:l.url,s:sents(tx[i])}));
+      if(srcs.length>1)break;
+    }
+  }
+
+  const pool=[];
+  srcs.forEach((s,si)=>s.s.forEach((x,pos)=>pool.push({x,si,pos,w:new Set(toks(x))})));
+  const idf={};
+  k.forEach(t=>{const df=pool.filter(p=>p.w.has(t)).length;idf[t]=Math.log(1+pool.length/(1+df))});
+  const minMatch=k.length>=2?2:1;
+  pool.forEach(p=>{
+    const matched=k.filter(t=>p.w.has(t));
+    if(matched.length<minMatch){p.sc=0;return}
+    p.sc=matched.reduce((a,t)=>a+idf[t],0)/Math.pow(p.x.length,.2);
+    if(p.sc>0&&p.si&&p.pos<2)p.sc+=.4;
+    if(p.si&&p.pos<3)p.sc+=.05;
+  });
+
+  const cnt={},used2=new Set(),chosen=[];
+  for(const p of pool.filter(p=>p.sc>0).sort((a,b)=>b.sc-a.sc)){
+    if(chosen.length>=R.maxSentences||(cnt[p.si]||0)>=R.perSource||used2.has(p.x))continue;
+    if(!used2.has(`s`+p.si)&&new Set(chosen.map(c=>c.si)).size>=R.maxSources)continue;
+    used2.add(p.x);cnt[p.si]=(cnt[p.si]||0)+1;chosen.push(p);
+  }
+
+  if(!chosen.length){
+    const miss=walkMarkov(`nofind`)||`Sorry, I could not find anything about that, so please narrow your search down to something else.`;
+    return{md:strict?(main?`${main}\n\n${miss}`:miss):miss,src:[],ddgLinks};
+  }
+
+  chosen.sort((a,b)=>a.si-b.si||a.pos-b.pos);
+  const order=[],src=[];
+  chosen.forEach(c=>{if(!order.includes(c.si)){order.push(c.si);src.push(srcs[c.si])}});
+  const body=chosen.map(c=>c.x+(R.cite?` [${order.indexOf(c.si)+1}]`:``)).join(` `);
+  const head=(r.heading||q.trim()).replace(/\b\w/g,c=>c.toUpperCase());
+  const lead=(it===`fix`&&R.apologize?(walkMarkov(`sorry`)||``)+` `:``)+(walkMarkov(`intro`)||``);
+  const md=strict?`${main}\n\n${lead}\n\n${body}`:`${lead}\n\n## ${head}\n\n${body}\n\n${walkMarkov(`close`)||``}`;
+  return{md,src,ddgLinks};
+}
+
+/* ===== markdown + citation bubbles ===== */
+function render(s,src){
+  const fence=String.fromCharCode(96,96,96);
+  return s.split(fence).map((x,i)=>i%2?`<pre><code>`+esc(x.replace(/^\n/,``))+`</code></pre>`:(x.trim()?rmd(x,src):``)).join(``);
+}
+function rmd(s,src){
+  const cite=(m,n)=>{
+    const x=src[n-1];if(!x)return m;
+    const t=`<span class="tip">${esc(x.label)}</span>`;
+    return x.url?`<a class="cite" href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${n}${t}</a>`:`<span class="cite" tabindex="0">${n}${t}</span>`;
+  };
+  return esc(s).split(/\n{2,}/).map(b=>{
+    b=b.replace(/`([^`\n]+)`/g,`<code>$1</code>`)
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,`<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>`)
+      .replace(/\[(\d+)\]/g,cite)
+      .replace(/\*\*(.+?)\*\*/g,`<b>$1</b>`)
+      .replace(/\*(.+?)\*/g,`<i>$1</i>`);
+    const h=b.match(/^(#{1,3}) (.+)$/m);
+    if(h&&!b.includes(`\n`))return`<h${h[1].length}>${h[2]}</h${h[1].length}>`;
+    return`<p>`+b.replace(/\n/g,`<br>`)+`</p>`;
+  }).join(``);
+}
+
+/* ===== Show more / Show less (>1000 chars) ===== */
+let isLongResponse=false;
+function updateCollapseState(expanded){
+  if(!isLongResponse){
+    aiWrapper.classList.remove(`collapsed`);
+    showMoreBtn.style.display=`none`;
+    showLessBtn.style.display=`none`;
+    return;
+  }
+  if(expanded){
+    aiWrapper.classList.remove(`collapsed`);
+    showMoreBtn.style.display=`none`;
+    showLessBtn.style.display=`block`;
+  }else{
+    aiWrapper.classList.add(`collapsed`);
+    showMoreBtn.style.display=`block`;
+    showLessBtn.style.display=`none`;
+  }
+}
+showMoreBtn.addEventListener(`click`,()=>updateCollapseState(true));
+showLessBtn.addEventListener(`click`,()=>{
+  updateCollapseState(false);
+  $(`#ai-overview`).scrollIntoView({behavior:`smooth`,block:`start`});
+});
+
+/* ===== Results Renderer ===== */
+function renderResults(links){
+  searchResultsEl.innerHTML=``;
+  if(!links||!links.length){
+    searchResultsEl.innerHTML=`<p class="st">No results returned for this query.</p>`;
+    return;
+  }
+  links.forEach(item=>{
+    const row=document.createElement(`div`);
+    row.className=`result-item`;
+    const domain=dom(item.url);
+    const titleText=item.title||domain;
+    row.innerHTML=`
+      <div class="result-domain">${esc(domain)}</div>
+      <a class="result-title" href="${esc(item.url)}" target="_blank" rel="noopener noreferrer">${esc(titleText)}</a>
+      ${item.text?`<p class="result-snippet">${esc(item.text)}</p>`:``}
+    `;
+    searchResultsEl.append(row);
+  });
+}
+
+/* ===== Navigation & Search Flow ===== */
+function goHome(){
+  searchGen++;
+  if(ctl)ctl.abort();
+  document.body.classList.remove(`results-mode`);
+  document.body.classList.add(`home-mode`);
+  qInput.value=``;
+  aiContent.innerHTML=``;
+  searchResultsEl.innerHTML=``;
+  isLongResponse=false;
+  updateCollapseState(false);
+  qInput.focus();
+}
+
+brandEl.addEventListener(`click`,()=>{
+  if(document.body.classList.contains(`results-mode`))goHome();
+});
+brandEl.addEventListener(`keydown`,e=>{
+  if((e.key===`Enter`||e.key===` `)&&document.body.classList.contains(`results-mode`)){
+    e.preventDefault();
+    goHome();
+  }
+});
+
+async function runSearch(queryText){
+  const gen=++searchGen;
+  if(ctl)ctl.abort();
+  ctl=new AbortController();
+
+  document.body.classList.remove(`home-mode`);
+  document.body.classList.add(`results-mode`);
+
+  isLongResponse=false;
+  updateCollapseState(false);
+  aiContent.innerHTML=`<p class="st">Thinking…</p>`;
+  searchResultsEl.innerHTML=`<p class="st">Loading results…</p>`;
+
+  const status=s=>{
+    if(gen!==searchGen)return;
+    aiContent.innerHTML=`<p class="st">${esc(s)}</p>`;
+  };
+
+  try{
+    const res=await answer(queryText,status);
+    if(gen!==searchGen)return;
+
+    const fullText=res.md||``;
+    aiContent.innerHTML=render(fullText,res.src);
+
+    if(res.src&&res.src.length){
+      const d=document.createElement(`div`);
+      d.className=`src`;
+      res.src.forEach((s,i)=>{
+        const e=document.createElement(s.url?`a`:`span`);
+        if(s.url){e.href=s.url;e.target=`_blank`;e.rel=`noopener noreferrer`}
+        e.textContent=`${i+1}  ${s.label}`;
+        d.append(e);
+      });
+      aiContent.append(d);
+    }
+
+    isLongResponse=fullText.length>1000;
+    updateCollapseState(false);
+    renderResults(res.ddgLinks);
+  }catch{
+    if(gen!==searchGen)return;
+    isLongResponse=false;
+    updateCollapseState(false);
+    aiContent.innerHTML=`<p>Sorry about that, something went wrong while searching.</p>`;
+    searchResultsEl.innerHTML=``;
+  }
+}
+
+formEl.addEventListener(`submit`,e=>{
+  e.preventDefault();
+  const t=qInput.value.trim();
+  if(!t)return;
+  runSearch(t);
+});
+
+qInput.focus();
+})();
+</script>
+</body>
+</html>
